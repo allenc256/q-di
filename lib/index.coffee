@@ -17,7 +17,7 @@ class Builder
     # Max depth used to perform cycle detection.
     @maxDepth = 0
 
-    for k, v of module
+    for own k, v of module
       if v instanceof Function
         @maxDepth++
         @specs[k] = {
@@ -44,7 +44,7 @@ class Builder
 class Injector
   constructor: (module) ->
     builder = new Builder(module)
-    for k, v of module
+    for own k, v of module
       do (k, v) =>
         @[k] = -> builder.build(k)
 
