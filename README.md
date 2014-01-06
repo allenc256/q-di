@@ -27,7 +27,7 @@ injector.server() # construct a server (returns a Q promise)
 
 Names of dependency arguments can also be specified explicitly, as shown below. This method for specifying dependencies might be useful if you want to use periods or colons in your dependency names (e.g., to namespace things, such as 'server.backend.cache'):
 
-```coffeee
+```coffeescript
 MODULE = {
   server: {
     deps   : ['cache', 'database']
