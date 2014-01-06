@@ -1,20 +1,20 @@
-assert   = require('assert')
-Q        = require('q')
-Injector = require('../lib').Injector
+assert = require('assert')
+Q      = require('q')
+di     = require('../lib')
 
 describe 'Injector', ->
   it 'raw value provider function works', (done) ->
-    new Injector({ foo: -> 123 }).foo().done (v) ->
+    new di.Injector({ foo: -> 123 }).foo().done (v) ->
       assert.equal(123, v)
       done()
 
   it 'promise provider function works', (done) ->
-    new Injector({ foo: -> Q(123) }).foo().done (v) ->
+    new di.Injector({ foo: -> Q(123) }).foo().done (v) ->
       assert.equal(123, v)
       done()
 
   it 'provider function with dependencies works', (done) ->
-    new Injector({
+    new di.Injector({
       foo : -> 'foo'
       bar : -> Q('bar')
       baz : (foo, bar) -> foo + bar
@@ -23,7 +23,7 @@ describe 'Injector', ->
       done()
 
   it 'full specification works', (done) ->
-    new Injector({ 
+    new di.Injector({ 
       foo:
         deps   : ['bar']
         create : (bar) -> 'foo' + bar
@@ -35,7 +35,7 @@ describe 'Injector', ->
       done()
 
   it 'asynchronous dependencies work', (done) ->
-    new Injector({
+    new di.Injector({
       foo : -> Q.delay(10).then -> 'foo'
       bar : -> Q.delay(50).then -> 'bar'
       baz : (foo, bar) -> foo + bar
@@ -44,7 +44,7 @@ describe 'Injector', ->
       done()
 
   it 'transitive dependencies work', (done) ->
-    i = new Injector({
+    i = new di.Injector({
       foo : (bar) -> 'foo' + bar
       bar : (baz) -> 'bar' + baz
       baz : -> 'baz'
@@ -57,7 +57,7 @@ describe 'Injector', ->
       done()
 
   it 'constructs singleton-scoped objects', (done) ->
-    i = new Injector({
+    i = new di.Injector({
       foo : -> {}
     })
     Q.all([i.foo(), i.foo()])
@@ -67,7 +67,7 @@ describe 'Injector', ->
 
   it 'errors gracefully on invalid dependencies', (done) ->
     try
-      new Injector({
+      new di.Injector({
         foo : (bar) -> 'foo' + bar
         bar : (baz) -> 'bar' + baz
       }).foo()
@@ -78,7 +78,7 @@ describe 'Injector', ->
 
   it 'errors gracefully on cycles', (done) ->
     try
-      new Injector({
+      new di.Injector({
         foo : (foo) -> foo + 'foo'
       }).foo()
     catch err
@@ -88,7 +88,7 @@ describe 'Injector', ->
 
   it 'errors gracefully on cycles 2', (done) ->
     try
-      new Injector({
+      new di.Injector({
         foo : (bar) -> 'foo' + bar
         bar : (baz) -> 'bar' + baz
         baz : (foo) -> 'baz' + foo
@@ -97,3 +97,36 @@ describe 'Injector', ->
       assert.equal('Cycle detected', err.message)
       return done()
     done('expected Error')
+
+  it 'namespacing works', (done) ->
+    fooCreate = (bar) -> 'foo' + bar
+    barCreate = -> 'bar'
+
+    # Namespace with function deps
+    actual1 = di.namespace({
+      foo : fooCreate
+      bar : barCreate
+    }, 'prefix.')
+    # Namespace with explicit argument deps
+    actual2 = di.namespace({
+      foo :
+        deps   : ['bar']
+        create : fooCreate
+      bar :
+        deps   : []
+        create : barCreate
+    }, 'prefix.')
+    expected = {
+      'prefix.foo' :
+        deps   : ['prefix.bar']
+        create : fooCreate
+      'prefix.bar' :
+        deps   : []
+        create : barCreate
+    }
+
+    assert.deepEqual(expected, actual1)
+    assert.deepEqual(expected, actual2)
+    new di.Injector(actual1)['prefix.foo']().done (v) ->
+      assert.equal('foobar', v)
+      done()

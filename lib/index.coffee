@@ -41,6 +41,23 @@ class Builder
       Q(spec.create.apply(@, resolved))
     return result
 
+namespace = (module, prefix) ->
+  result = {}
+  for own k, v of module
+    deps   = undefined
+    create = undefined
+    if v instanceof Function
+      deps   = getParamNames(v)
+      create = v
+    else
+      deps   = v.deps
+      create = v.create
+    result[prefix + k] = {
+      deps   : ((prefix + arg) for arg in deps)
+      create : create
+    }
+  result
+
 # Facade for Builder which comprises the public API.
 class Injector
   constructor: (module) ->
@@ -50,3 +67,4 @@ class Injector
         @[k] = -> builder.build(k)
 
 module.exports.Injector = Injector
+module.exports.namespace = namespace
