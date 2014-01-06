@@ -25,10 +25,10 @@ describe 'Injector', ->
   it 'full specification works', (done) ->
     new di.Injector({ 
       foo:
-        deps   : ['bar']
+        args   : ['bar']
         create : (bar) -> 'foo' + bar
       bar:
-        deps   : []
+        args   : []
         create : -> 'bar'
     }).foo().done (v) ->
       assert.equal('foobar', v)
@@ -110,18 +110,18 @@ describe 'Injector', ->
     # Namespace with explicit argument deps
     actual2 = di.namespace({
       foo :
-        deps   : ['bar']
+        args   : ['bar']
         create : fooCreate
       bar :
-        deps   : []
+        args   : []
         create : barCreate
     }, 'prefix.')
     expected = {
       'prefix.foo' :
-        deps   : ['prefix.bar']
+        args   : ['prefix.bar']
         create : fooCreate
       'prefix.bar' :
-        deps   : []
+        args   : []
         create : barCreate
     }
 

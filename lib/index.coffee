@@ -21,11 +21,11 @@ class Builder
       @maxDepth++
       if v instanceof Function
         @specs[k] = {
-          deps   : getParamNames(v)
+          args   : getParamNames(v)
           create : v
         }
       else
-        throw new Error('Invalid dependency specification') if not (v.deps? and v.create?)
+        throw new Error('Invalid dependency specification') if not (v.args? and v.create?)
         @specs[k] = v
 
   build: (k, depth = 0) ->
@@ -36,7 +36,7 @@ class Builder
     spec = @specs[k]
     throw new Error("Missing specification for dependency: #{k}") if not spec?
 
-    promises  = (@build(d, depth + 1) for d in spec.deps)
+    promises  = (@build(d, depth + 1) for d in spec.args)
     @built[k] = result = Q.all(promises).then (resolved) ->
       Q(spec.create.apply(@, resolved))
     return result
@@ -44,16 +44,16 @@ class Builder
 namespace = (module, prefix) ->
   result = {}
   for own k, v of module
-    deps   = undefined
+    args   = undefined
     create = undefined
     if v instanceof Function
-      deps   = getParamNames(v)
+      args   = getParamNames(v)
       create = v
     else
-      deps   = v.deps
+      args   = v.args
       create = v.create
     result[prefix + k] = {
-      deps   : ((prefix + arg) for arg in deps)
+      args   : ((prefix + arg) for arg in args)
       create : create
     }
   result

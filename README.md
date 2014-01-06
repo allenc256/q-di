@@ -30,7 +30,7 @@ Names of dependency arguments can also be specified explicitly, as shown below. 
 ```coffeescript
 MODULE = {
   server: {
-    deps   : ['cache', 'database']
+    args   : ['cache', 'database']
     create : (c, d) -> new MyServer(c, d)
   }
   # ...
