@@ -18,14 +18,15 @@ class Builder
     @maxDepth = 0
 
     for own k, v of module
+      @maxDepth++
       if v instanceof Function
-        @maxDepth++
         @specs[k] = {
-          dependencies : getParamNames(v)
-          provider     : v
+          deps   : getParamNames(v)
+          create : v
         }
       else
-        @built[k] = Q(v)
+        throw new Error('Invalid dependency specification') if not (v.deps? and v.create?)
+        @specs[k] = v
 
   build: (k, depth = 0) ->
     return @built[k] if @built[k]
@@ -35,9 +36,9 @@ class Builder
     spec = @specs[k]
     throw new Error("Missing specification for dependency: #{k}") if not spec?
 
-    promises  = (@build(d, depth + 1) for d in spec.dependencies)
+    promises  = (@build(d, depth + 1) for d in spec.deps)
     @built[k] = result = Q.all(promises).then (resolved) ->
-      Q(spec.provider.apply(@, resolved))
+      Q(spec.create.apply(@, resolved))
     return result
 
 # Facade for Builder which comprises the public API.

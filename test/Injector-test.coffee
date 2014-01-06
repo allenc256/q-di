@@ -3,11 +3,6 @@ Q        = require('q')
 Injector = require('../lib').Injector
 
 describe 'Injector', ->
-  it 'raw value provider works', (done) ->
-    new Injector({ foo: 123 }).foo().done (v) ->
-      assert.equal(123, v)
-      done()
-
   it 'raw value provider function works', (done) ->
     new Injector({ foo: -> 123 }).foo().done (v) ->
       assert.equal(123, v)
@@ -20,10 +15,22 @@ describe 'Injector', ->
 
   it 'provider function with dependencies works', (done) ->
     new Injector({
-      foo : 'foo'
+      foo : -> 'foo'
       bar : -> Q('bar')
       baz : (foo, bar) -> foo + bar
     }).baz().done (v) ->
+      assert.equal('foobar', v)
+      done()
+
+  it 'full specification works', (done) ->
+    new Injector({ 
+      foo:
+        deps   : ['bar']
+        create : (bar) -> 'foo' + bar
+      bar:
+        deps   : []
+        create : -> 'bar'
+    }).foo().done (v) ->
       assert.equal('foobar', v)
       done()
 

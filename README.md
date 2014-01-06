@@ -23,6 +23,20 @@ injector = new di.Injector(MODULE)
 injector.server() # construct a server (returns a Q promise)
 ```
 
+### Explicit argument names
+
+Names of dependency arguments can also be specified explicitly, as shown below. This method for specifying dependencies might be useful if you want to use periods or colons in your dependency names (e.g., to namespace things, such as 'server.backend.cache'):
+
+```coffeee
+MODULE = {
+  server: {
+    deps   : ['cache', 'database']
+    create : (c, d) -> new MyServer(c, d)
+  }
+  # ...
+}
+```
+
 ### Promises/asynchrony
 
 Most importantly, dependencies can return promises instead of raw values. For example, the following module introduces a 100 ms delay when constructing a `foo` object:
@@ -41,17 +55,6 @@ The above example is contrived, but more realistically, some of your components 
 That's the entire API!
 
 ## Notes
-
-### Constants
-
-Dependencies can be specified as constants instead of functions. The following is a valid module specification:
-
-```coffeescript
-MODULE = {
-  foo : 'foo' # constant
-  bar : (foo) -> foo + 'bar'
-}
-```
 
 ### Scoping
 
