@@ -130,3 +130,19 @@ describe 'Injector', ->
     new di.Injector(actual1)['prefix.foo']().done (v) ->
       assert.equal('foobar', v)
       done()
+
+  it 'private dependencies', (done) ->
+    injector = new di.Injector({
+      foo: 
+        args   : ['bar']
+        create : (bar) -> 'foo' + bar
+      bar:
+        private : true
+        create  : -> 'bar'
+    })
+    assert.ok(injector.foo?)
+    assert.ok(not injector.bar?)
+    injector.foo().done (v) ->
+      assert.equal('foobar', v)
+      done()
+

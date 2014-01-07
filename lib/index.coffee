@@ -25,7 +25,7 @@ class Builder
           create : v
         }
       else
-        throw new Error('Invalid dependency specification') if not (v.args? and v.create?)
+        throw new Error('Invalid dependency specification') if not v.create?
         @specs[k] = v
 
   build: (k, depth = 0) ->
@@ -36,7 +36,8 @@ class Builder
     spec = @specs[k]
     throw new Error("Missing specification for dependency: #{k}") if not spec?
 
-    promises  = (@build(d, depth + 1) for d in spec.args)
+    args      = spec.args || []
+    promises  = (@build(d, depth + 1) for d in args)
     @built[k] = result = Q.all(promises).then (resolved) ->
       Q(spec.create.apply(@, resolved))
     return result
@@ -50,7 +51,7 @@ namespace = (module, prefix) ->
       args   = getParamNames(v)
       create = v
     else
-      args   = v.args
+      args   = v.args || []
       create = v.create
     result[prefix + k] = {
       args   : ((prefix + arg) for arg in args)
@@ -63,8 +64,9 @@ class Injector
   constructor: (module) ->
     builder = new Builder(module)
     for own k, v of module
-      do (k, v) =>
-        @[k] = -> builder.build(k)
+      if (v instanceof Function) or not v.private
+        do (k, v) =>
+          @[k] = -> builder.build(k)
 
 module.exports.Injector = Injector
 module.exports.namespace = namespace
