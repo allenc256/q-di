@@ -42,7 +42,7 @@ class Builder
       Q(spec.create.apply(@, resolved))
     return result
 
-namespace = (module, prefix) ->
+namespace = (prefix, module) ->
   result = {}
   for own k, v of module
     args   = undefined

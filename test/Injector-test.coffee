@@ -103,19 +103,19 @@ describe 'Injector', ->
     barCreate = -> 'bar'
 
     # Namespace with function deps
-    actual1 = di.namespace({
+    actual1 = di.namespace('prefix.', {
       foo : fooCreate
       bar : barCreate
-    }, 'prefix.')
+    })
     # Namespace with explicit argument deps
-    actual2 = di.namespace({
+    actual2 = di.namespace('prefix.', {
       foo :
         args   : ['bar']
         create : fooCreate
       bar :
         args   : []
         create : barCreate
-    }, 'prefix.')
+    })
     expected = {
       'prefix.foo' :
         args   : ['prefix.bar']
