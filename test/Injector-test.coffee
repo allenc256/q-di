@@ -131,7 +131,7 @@ describe 'Injector', ->
       assert.equal('foobar', v)
       done()
 
-  it 'private dependencies', (done) ->
+  it 'private dependencies work', (done) ->
     injector = new di.Injector({
       foo: 
         args   : ['bar']
@@ -146,20 +146,51 @@ describe 'Injector', ->
       assert.equal('foobar', v)
       done()
 
-  it 'createAll works', (done) ->
+  it 'hierarchical dependencies work', (done) ->
     injector = new di.Injector({
-      'foo.bar.baz'   : -> 'foobarbaz'
-      'fruits.banana' : -> 'yellow'
-      'fruits.apple'  : -> 'red'
-    })
-    di.createAll(injector).done (result) ->
+      'foo.bar.baz.qux' : -> 'hello'
+      'fruits.banana'   : -> 'yellow'
+      'fruits.apple'    : -> 'red'
+      'fruits.grape'    : -> 'purple'
+    }, { hierarchical: true })
+    injector.foo().then (foo) ->
+      assert.deepEqual({ bar: { baz: { qux: 'hello' }}}, foo)
+      injector.fruits()
+    .then (fruits) ->
       assert.deepEqual({
-        foo:
-          bar:
-            baz: 'foobarbaz'
-        fruits:
-          banana: 'yellow'
-          apple: 'red'
-      }, result)
+        banana : 'yellow'
+        apple  : 'red'
+        grape  : 'purple'
+      }, fruits)
+      injector['foo.bar']()
+    .done (bar) ->
+      assert.deepEqual({ baz: { qux: 'hello'}}, bar)
       done()
 
+  it 'hierarchical dependencies respect private flag', (done) ->
+    injector = new di.Injector({
+      'fruits.banana' :
+        private : true
+        create  : -> 'yellow'
+      'fruits.apple' : -> 'red'
+      'yogurt.pinkberry' : 
+        private : true
+        create  : -> 'awesome'
+      'yogurt.fraiche' :
+        private : true
+        create  : -> 'meh'
+    }, { hierarchical: true })
+    assert.ok(not injector['yogurt']?)
+    injector.fruits().done (fruits) ->
+      assert.deepEqual({ apple: 'red' }, fruits)
+      done()
+
+  it 'hierarchical dependencies can be overriden', (done) ->
+    new di.Injector({
+      'fruits.banana' : -> 'yellow'
+      'fruits.apple'  : -> 'red'
+      'fruits.grape'  : -> 'purple'
+      'fruits'        : -> 'gotcha!'
+    }, { hierarchical: true }).fruits().done (fruits) ->
+      assert.equal('gotcha!', fruits)
+      done()

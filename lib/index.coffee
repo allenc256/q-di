@@ -1,3 +1,4 @@
+_ = require 'lodash'
 Q = require 'q'
 
 # http://stackoverflow.com/questions/1007981
@@ -6,6 +7,54 @@ getParamNames = (fn) ->
   fnStr  = fn.toString().replace(STRIP_COMMENTS, '')
   result = fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')')).match(/([^\s,]+)/g)
   return result || []
+
+isPublicDep = (dep) ->
+  _.isFunction(dep) or not dep.private
+
+isValidDep = (dep) ->
+  _.isFunction(dep) or dep.create?
+
+addHierarchicalDeps = (module) ->
+  module  = _.clone(module)
+  newDeps = {}
+
+  for own name, dep of module
+    continue if name.indexOf('.') == -1
+    continue if not isPublicDep(dep)
+
+    comps = name.split('.')
+    for i in [0...(comps.length-1)]
+      prefix = comps[0..i].join('.')
+      arg    = comps[i + 1]
+      newDeps[prefix] ||= {}
+      newDeps[prefix][arg] = true
+
+  for own name, args of newDeps
+    argNames = _.keys(args)
+    do (argNames) ->
+      module[name] ||= {
+        args   : _.map(argNames, (n) -> name + '.' + n)
+        create : (values...) -> _.zipObject(argNames, values)
+      }
+
+  module
+
+prefix = (prefix, module) ->
+  result = {}
+  for own k, v of module
+    args   = undefined
+    create = undefined
+    if _.isFunction(v)
+      args   = getParamNames(v)
+      create = v
+    else
+      args   = v.args || []
+      create = v.create
+    result[prefix + k] = {
+      args   : ((prefix + arg) for arg in args)
+      create : create
+    }
+  result
 
 # The dependency injection engine.
 class Builder
@@ -25,7 +74,7 @@ class Builder
           create : v
         }
       else
-        throw new Error('Invalid dependency specification') if not v.create?
+        throw new Error('Invalid dependency specification') if not isValidDep(v)
         @specs[k] = v
 
   build: (k, depth = 0) ->
@@ -42,53 +91,18 @@ class Builder
       Q(spec.create.apply(@, resolved))
     return result
 
-namespace = (prefix, module) ->
-  result = {}
-  for own k, v of module
-    args   = undefined
-    create = undefined
-    if v instanceof Function
-      args   = getParamNames(v)
-      create = v
-    else
-      args   = v.args || []
-      create = v.create
-    result[prefix + k] = {
-      args   : ((prefix + arg) for arg in args)
-      create : create
-    }
-  result
-
-insertUnflattened = (object, key, value) ->
-  ks = key.split('.')
-  while ks.length > 1
-    k      = ks.shift()
-    object = (object[k] ||= {})
-  object[ks[0]] = value
-
-createAll = (injector) ->
-  keys     = []
-  promises = []
-  result   = {}
-
-  for own k, v of injector
-    keys.push(k)
-    promises.push(v())
-
-  Q.all(promises).then (values) ->
-    for i in [0...keys.length]
-      insertUnflattened(result, keys[i], values[i])
-    result
-
 # Facade for Builder which comprises the public API.
 class Injector
-  constructor: (module) ->
+  constructor: (module, options) ->
+    if options?.hierarchical
+      module = addHierarchicalDeps(module)
+
     builder = new Builder(module)
     for own k, v of module
-      if (v instanceof Function) or not v.private
+      if isPublicDep(v)
         do (k, v) =>
           @[k] = -> builder.build(k)
 
 module.exports.Injector  = Injector
-module.exports.namespace = namespace
-module.exports.createAll = createAll
+module.exports.namespace = prefix # (deprecated - get rid of this)
+module.exports.prefix    = prefix
