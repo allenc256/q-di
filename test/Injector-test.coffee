@@ -146,3 +146,20 @@ describe 'Injector', ->
       assert.equal('foobar', v)
       done()
 
+  it 'createAll works', (done) ->
+    injector = new di.Injector({
+      'foo.bar.baz'   : -> 'foobarbaz'
+      'fruits.banana' : -> 'yellow'
+      'fruits.apple'  : -> 'red'
+    })
+    di.createAll(injector).done (result) ->
+      assert.deepEqual({
+        foo:
+          bar:
+            baz: 'foobarbaz'
+        fruits:
+          banana: 'yellow'
+          apple: 'red'
+      }, result)
+      done()
+

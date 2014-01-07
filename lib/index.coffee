@@ -59,6 +59,27 @@ namespace = (prefix, module) ->
     }
   result
 
+insertUnflattened = (object, key, value) ->
+  ks = key.split('.')
+  while ks.length > 1
+    k      = ks.shift()
+    object = (object[k] ||= {})
+  object[ks[0]] = value
+
+createAll = (injector) ->
+  keys     = []
+  promises = []
+  result   = {}
+
+  for own k, v of injector
+    keys.push(k)
+    promises.push(v())
+
+  Q.all(promises).then (values) ->
+    for i in [0...keys.length]
+      insertUnflattened(result, keys[i], values[i])
+    result
+
 # Facade for Builder which comprises the public API.
 class Injector
   constructor: (module) ->
@@ -68,5 +89,6 @@ class Injector
         do (k, v) =>
           @[k] = -> builder.build(k)
 
-module.exports.Injector = Injector
+module.exports.Injector  = Injector
 module.exports.namespace = namespace
+module.exports.createAll = createAll
