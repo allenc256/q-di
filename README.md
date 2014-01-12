@@ -23,6 +23,21 @@ injector = new di.Injector(MODULE)
 injector.server() # construct a server (returns a Q promise)
 ```
 
+### Promises/asynchrony
+
+Dependencies can return promises instead of raw values. For example, the following module introduces a 100 ms delay when constructing a `foo` object:
+
+```coffeescript
+MODULE = {
+  foo : -> Q.delay(100).then(-> 'foo')
+}
+
+# Prints "foobar" (after 100 ms):
+new di.Injector(MODULE).foo().done((result) -> console.log(result))
+```
+
+The above example is contrived, but more realistically, some of your components may need to perform IO asynchronously before they are fully initialized. For example, your `server` object might depend on a `database` object which needs to first establish a connection to the database before it's initialized.
+
 ### Explicit argument names
 
 Names of dependency arguments can also be specified explicitly, as shown below. This method for specifying dependencies might be useful if you want to use periods in your dependency names (e.g., to namespace things, such as 'server.backend.cache'):
@@ -74,21 +89,6 @@ injector['foo.bar']()
 ```
 
 This is another feature which can be useful when organizing larger codebases.
-
-### Promises/asynchrony
-
-Dependencies can return promises instead of raw values. For example, the following module introduces a 100 ms delay when constructing a `foo` object:
-
-```coffeescript
-MODULE = {
-  foo : -> Q.delay(100).then(-> 'foo')
-}
-
-# Prints "foobar" (after 100 ms):
-new di.Injector(MODULE).foo().done((result) -> console.log(result))
-```
-
-The above example is contrived, but more realistically, some of your components may need to perform IO asynchronously before they are fully initialized. For example, your `server` object might depend on a `database` object which needs to first establish a connection to the database before it's initialized.
 
 ## Notes
 
