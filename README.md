@@ -40,7 +40,7 @@ The above example is contrived, but more realistically, some of your components 
 
 ### Explicit argument names
 
-Names of dependency arguments can also be specified explicitly, as shown below. This method for specifying dependencies might be useful if you want to use periods in your dependency names (e.g., to namespace things, such as 'server.backend.cache'):
+Names of dependency arguments can also be specified explicitly, as shown below. This method for specifying dependencies might be useful if you want to use periods in your dependency names (e.g., to namespace dependencies or to create hierarchical dependencies, as in the section below):
 
 ```coffeescript
 MODULE = {
@@ -54,39 +54,36 @@ MODULE = {
 
 ### Hierarchical dependencies
 
-Dependency names containing periods ('.') can be treated hierarchically if the `hierarchical` flag is set to `true`, as below:
+Dependency names containing periods ('.') can be treated hierarchically. For example, the module:
 
 ```coffeescript
 MODULE = {
-  'services.component1' : -> new MyComponent1()
-  'services.component2' : -> new MyComponent2()
-  'services.component3' :
-    args   : ['services.component1', 'services.component2']
-    create : (c1, c2) -> new MyComponent3(c1, c2)
+  'component1.subcomp1' : -> ...
+  'component1.subcomp2' : -> ...
+  'component1.subcomp2.subsubcomp1' : -> ...
+  'component1.subcomp2.subsubcomp2' : -> ...
+  'component2' : -> ...
 }
-
-injector = new di.Injector(MODULE, { hierarchical: true })
-
-# Returns promise for services "container object" containing the 3 components.
-injector.services()
-
-# Returns promise for component 1.
-injector['services.component1']()
 ```
 
-This introduces implicit "container object" dependencies into the created injector which will automatically create all dependencies within the container when invoked. Containers can be nested arbitrarily deep:
+Represents the hierarchy of components:
+
+* component1
+  * subcomp1
+  * subcomp2
+    * subsubcomp1
+    * subsubcomp2
+* component2
+
+If the `hierarchical` flag is set to `true` when creating the injector, components at any level of the hierarchy can be created:
 
 ```coffeescript
-injector = new di.Injector({
-  'foo.bar.baz' : -> ...
-}, { hierarchical: true })
-
-# Returns promise for bar container.
-injector.foo().then -> foo.bar
-
-# Also returns promise for bar container.
-injector['foo.bar']() 
+injector = new di.Injector(MODULE, { hierarchical: true })
+injector.component1() # gets promise for component1
+injector['component1.subcomp1']() # gets promise for subcomp1
 ```
+
+In this case, `component1` is a "container object" which contains all the sub-dependencies specified within the module (i.e., `subcomp1` and `subcomp2`). Note that the dependency for `component1` does not need to be specified explicitly.
 
 This is another feature which can be useful when organizing larger codebases.
 
